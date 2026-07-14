@@ -135,7 +135,13 @@ export class SlidingWindowCounter {
     const now = Date.now()
     const elapsed = now - this.windowStart
 
-    if (elapsed >= this.windowMs) {
+    if (elapsed >= 2 * this.windowMs) {
+      // Idle for 2+ full windows — previous window is fully stale, drop both counts
+      this.prevCount = 0
+      this.currCount = 0
+      this.windowStart = now
+    } else if (elapsed >= this.windowMs) {
+      // Crossed exactly one boundary — shift current into previous
       this.prevCount = this.currCount
       this.currCount = 0
       this.windowStart = now
