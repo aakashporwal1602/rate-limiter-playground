@@ -10,7 +10,7 @@ const ALGOS = [
     companies: 'Stripe · AWS · Twilio',
     color: '#7C5CFF',
     pros: ['Allows burst traffic', 'Smooth refill rate', 'Memory efficient O(1)'],
-    cons: ['Can allow 2x burst at start', 'Tricky to tune refill rate'],
+    cons: ['Burst up to full capacity at once', 'Tricky to tune refill rate'],
     useCases: 'API gateways, payment APIs, general-purpose rate limiting',
     complexity: 'O(1) time · O(1) space',
   },
@@ -40,7 +40,7 @@ const ALGOS = [
     id: 'swcount',
     name: 'Sliding Window Counter',
     badge: 'Best balance',
-    companies: 'Redis · Nginx · Cloudflare',
+    companies: 'Redis · Cloudflare · Kong',
     color: '#34D399',
     pros: ['Near-accurate (weighted approximation)', 'O(1) memory', 'Fast and scalable'],
     cons: ['Approximation — not 100% exact', 'Slightly complex logic'],
@@ -270,7 +270,7 @@ app.use((req, res, next) => {
       title: 'Sliding Window Counter',
       color: '#34D399',
       code: `// Sliding Window Counter Rate Limiter
-// Used by Redis, Nginx, Cloudflare — best memory efficiency
+// Used by Cloudflare, Kong — best memory efficiency
 
 class SlidingWindowCounter {
   constructor(limit, windowSec) {
@@ -304,14 +304,12 @@ class SlidingWindowCounter {
   }
 }
 
-// Redis implementation (production-ready)
-// Using INCR + EXPIRE for distributed rate limiting:
+// Redis implementation — Fixed Window Counter (production)
+// NOTE: INCR + EXPIRE is a Fixed Window, not a true Sliding Window Counter.
 //
 // async function allowRequest(redis, key, limit, windowSec) {
-//   const multi = redis.multi()
-//   multi.incr(key)
-//   multi.expire(key, windowSec)
-//   const [count] = await multi.exec()
+//   const count = await redis.incr(key)
+//   if (count === 1) await redis.expire(key, windowSec) // set TTL only on first hit
 //   return count <= limit
 // }`,
     },
@@ -335,7 +333,7 @@ class SlidingWindowCounter {
         </div>
       ))}
       <div className="code-note">
-        <strong>For distributed systems:</strong> Use Redis as the backing store so rate limits are shared across multiple server instances. The Sliding Window Counter maps perfectly to Redis INCR + EXPIRE commands.
+        <strong>For distributed systems:</strong> Use Redis as the backing store so rate limits are shared across multiple server instances. A <strong>Fixed Window</strong> counter maps directly to Redis INCR + EXPIRE. A true Sliding Window Counter needs two window keys with weighted overlap (or a Lua script / sorted-set for Sliding Window Log) to stay atomic.
       </div>
     </div>
   )
